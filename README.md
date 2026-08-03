@@ -3,13 +3,19 @@
     <h1>Halo - Lsky Pro</h1>
     <p>集成 <a href="https://www.lsky.pro/">Lsky Pro</a> 兰空图床作为 <a href="https://www.halo.run/">Halo</a> 的存储后端。</p>
     <p align="center">
-        <a href="https://www.halo.run/store/apps/app-jZHhX?tab=readme"><img alt="Halo App Store" src="https://img.shields.io/badge/Halo-%E5%BA%94%E7%94%A8%E5%B8%82%E5%9C%BA-%230A81F5?style=flat-square&logo=appstore&logoColor=%23fff" /></a>
-        <a href="//github.com/ichenhe/halo-lsky-pro/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/ichenhe/halo-lsky-pro?style=flat-square&logo=github" /></a>
-        <a href="//github.com/ichenhe/halo-lsky-pro/actions/workflows/ci.yaml"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/ichenhe/halo-lsky-pro/ci.yaml?style=flat-square&label=build" /></a>
+        <a href="//github.com/lqbby/halo-lsky-pro/actions/workflows/ci.yaml"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/lqbby/halo-lsky-pro/ci.yaml?style=flat-square&label=build" /></a>
         <a href="./LICENSE"><img alt="GitHub License" src="https://img.shields.io/github/license/ichenhe/halo-lsky-pro?style=flat-square" /></a>
     </p>
-
 </div>
+
+> [!NOTE]
+> **这是 [ichenhe/halo-lsky-pro](https://github.com/ichenhe/halo-lsky-pro) 的 fork，在原版基础上增加了 Lsky Pro 商业版 v2 API (`/api/v2/`) 的支持。** 原版仅支持开源版 v1 API。
+
+### 本 fork 新增功能
+
+- 支持商业版 Lsky Pro v2 API (`/api/v2/`)，在添加存储策略时选择 API 版本即可
+- v2 模式下自动使用 `storage_id` 参数名（替代 v1 的 `strategy_id`）
+- 兼容 v2 API 的多种状态返回格式（`true` / `"success"`）
 
 局限性：
 
@@ -81,8 +87,7 @@ Halo 的设计非常灵活，允许安装一个插件后基于不同参数（例
 
 ## 建议/反馈
 
-这里是免费开源的第三方插件，无论是否为 Halo 商业用户都不会获得独特的售后服务，请前往仓库的 issues 进行反馈。
+- **本 fork 相关问题**：请到本仓库 [issues](https://github.com/lqbby/halo-lsky-pro/issues) 反馈
+- **原版插件问题**：请到上游仓库 [ichenhe/halo-lsky-pro](https://github.com/ichenhe/halo-lsky-pro) 反馈
 
-求助请描述清楚问题，尽量附上你的配置，错误日志，故障截图等。建议请写明背景和用例。
-
-一句话的反馈将被无条件关闭。
+求助请描述清楚问题，尽量附上你的配置，错误日志，故障截图等。
