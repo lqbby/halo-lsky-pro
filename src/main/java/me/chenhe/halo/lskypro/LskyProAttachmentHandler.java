@@ -177,25 +177,42 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
 
     Attachment buildAttachment(UploadResponse uploadResponse, @Nonnull String instanceId) {
         Assert.hasText(instanceId, "instanceId cannot be empty");
-        Assert.notNull(uploadResponse.links(), "links cannot be null");
-        Assert.hasText(uploadResponse.links().url(), "url cannot be empty");
 
+        // v2 has public_url directly; v1 has links.url
+        final String url;
+        if (uploadResponse.publicUrl() != null) {
+            url = uploadResponse.publicUrl();
+        } else {
+            Assert.notNull(uploadResponse.links(), "links cannot be null");
+            Assert.hasText(uploadResponse.links().url(), "url cannot be empty");
+            url = uploadResponse.links().url();
+        }
+
+        // v1: origin_name; v2: name or filename
         final var displayName = StringUtils.hasText(uploadResponse.origin_name())
-            ? uploadResponse.origin_name() : uploadResponse.name();
-        final var url = uploadResponse.links().url();
+            ? uploadResponse.origin_name()
+            : (StringUtils.hasText(uploadResponse.name())
+                ? uploadResponse.name()
+                : uploadResponse.filename());
+
+        // v1: key; v2: pathname or id as string
+        final String imageKey = StringUtils.hasText(uploadResponse.key())
+            ? uploadResponse.key()
+            : (StringUtils.hasText(uploadResponse.pathname())
+                ? uploadResponse.pathname()
+                : String.valueOf(uploadResponse.id()));
+
         final var mediaType = getUploadedImageMediaType(uploadResponse);
 
         final var metadata = new Metadata();
         metadata.setGenerateName(UUID.randomUUID().toString());
         metadata.setAnnotations(Map.of(
-            IMAGE_KEY, uploadResponse.key(),
+            IMAGE_KEY, imageKey,
             IMAGE_LINK, url,
             INSTANCE_ID, instanceId
         ));
 
         var spec = new Attachment.AttachmentSpec();
-        // Due to the limitations of LskyPro, it is the original size rather than the actual size
-        // after image processing.
         spec.setSize(uploadResponse.size() != null
             ? (long) (uploadResponse.size() * 1024L) : 0L);
         spec.setDisplayName(displayName);
@@ -210,7 +227,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         attachment.setSpec(spec);
         attachment.setStatus(status);
 
-        log.debug("Built attachment {} successfully", uploadResponse.key());
+        log.debug("Built attachment {} successfully", imageKey);
         return attachment;
     }
 

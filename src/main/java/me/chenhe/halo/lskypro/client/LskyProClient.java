@@ -89,8 +89,9 @@ public class LskyProClient {
             })
             .flatMap(this::checkResponse)
             .flatMap((data) -> {
-                if (data == null || data.links() == null || !StringUtils.hasText(
-                    data.links().url())) {
+                final var hasUrl = (data.links() != null && StringUtils.hasText(data.links().url()))
+                    || StringUtils.hasText(data.publicUrl());
+                if (!hasUrl) {
                     return Mono.error(
                         new LskyProException(HttpStatus.OK, "links or url is empty"));
                 }
@@ -99,6 +100,10 @@ public class LskyProClient {
     }
 
     public Mono<Void> delete(@NotNull String key) {
+        if (isV2Api) {
+            // v2 API doesn't expose a delete endpoint; skip deletion gracefully
+            return Mono.empty();
+        }
         return client.delete()
             .uri("/images/" + key)
             .retrieve()
