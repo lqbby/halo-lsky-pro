@@ -1,5 +1,6 @@
 package me.chenhe.halo.lskypro.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.annotation.Nullable;
 
@@ -30,6 +31,21 @@ public record UploadResponse(
     /** v2: pathname used as key for management */
     @Nullable String pathname,
     /** v2: numeric id */
-    @Nullable Integer id
+    @Nullable Integer id,
+    /** Fallback file size in bytes, set by client before building attachment */
+    @JsonIgnore long fallbackSize
 ) {
+    public UploadResponse withFallbackSize(long size) {
+        return new UploadResponse(key, name, origin_name, filename, extension, sha1,
+            size, mimetype, links, publicUrl, pathname, id, size);
+    }
+
+    /** Returns size in KB, using fallback if v2 API didn't provide it */
+    @JsonIgnore
+    public long getSizeBytes() {
+        if (size != null) {
+            return (long) (size * 1024L);
+        }
+        return fallbackSize;
+    }
 }

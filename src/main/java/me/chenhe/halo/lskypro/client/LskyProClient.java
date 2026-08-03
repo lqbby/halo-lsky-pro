@@ -59,7 +59,8 @@ public class LskyProClient {
         @Nullable String filename,
         @Nullable MediaType contentType,
         @Nullable Integer strategyId,
-        @Nullable Integer albumId
+        @Nullable Integer albumId,
+        long fileSize
     ) {
 
         final var bodyBuilder = new MultipartBodyBuilder();
@@ -96,7 +97,8 @@ public class LskyProClient {
                         new LskyProException(HttpStatus.OK, "links or url is empty"));
                 }
                 return Mono.just(data);
-            });
+            })
+            .map(resp -> resp.withFallbackSize(fileSize));
     }
 
     public Mono<Void> delete(@NotNull String key) {

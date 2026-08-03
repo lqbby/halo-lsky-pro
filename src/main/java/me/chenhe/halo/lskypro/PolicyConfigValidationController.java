@@ -33,7 +33,7 @@ public class PolicyConfigValidationController {
         final var client = new LskyProClient(props.getLskyUrl(), props.getLskyToken(),
             props.getApiVersion());
         return client.upload(content, FILE_NAME, null, props.getLskyStrategy(),
-                props.getLskyAlbumId())
+                props.getLskyAlbumId(), 0L)
             .doOnNext(r -> log.info("Validate LskyPro policy config: upload successful: {}", r))
             .flatMap((uploadResp) -> client.delete(uploadResp.key()))
             .onErrorMap(LskyProAttachmentHandler::handleError)

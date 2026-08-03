@@ -122,15 +122,14 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
     }
 
     Mono<UploadResponse> upload(UploadContext uploadContext, LskyProProperties props) {
-        return Mono.defer(() ->
-                Mono.just(new LskyProClient(props.getLskyUrl(), props.getLskyToken(),
-                    props.getApiVersion()))
-            )
-            .flatMap((lskyProClient ->
-                lskyProClient.upload(uploadContext.file().content(),
-                    uploadContext.file().filename(), null, props.getLskyStrategy(),
-                    props.getLskyAlbumId())
-            ));
+        return Mono.defer(() -> {
+                final var file = uploadContext.file();
+                final var client = new LskyProClient(props.getLskyUrl(), props.getLskyToken(),
+                    props.getApiVersion());
+                return client.upload(file.content(), file.filename(), null,
+                    props.getLskyStrategy(), props.getLskyAlbumId(),
+                    file.headers().getContentLength());
+            });
     }
 
     Optional<String> getImageLink(Attachment attachment) {
@@ -213,8 +212,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         ));
 
         var spec = new Attachment.AttachmentSpec();
-        spec.setSize(uploadResponse.size() != null
-            ? (long) (uploadResponse.size() * 1024L) : 0L);
+        spec.setSize(uploadResponse.getSizeBytes());
         spec.setDisplayName(displayName);
         if (mediaType != null) {
             spec.setMediaType(mediaType.toString());
