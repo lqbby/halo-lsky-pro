@@ -13,7 +13,7 @@
 
 局限性：
 
-- 仅支持开源版  Lsky Pro v2，不支持旧版，暂不不支持使用 v2 API (`/api/v2/`) 的商业版本。
+- 不支持 Lsky Pro v1 旧版；同时支持开源版（v1 API: `/api/v1/`）和商业版（v2 API: `/api/v2/`），在添加存储策略时选择对应的 API 版本即可。
 - 由于 Lsky Pro 限制，若启用图床端格式转换（图片压缩）将导致 Halo 中显示的附件大小不正确。
 - 由于 Lsky Pro 本身的限制，只能生成一个预定义大小的缩略图，不满足 [Halo 的要求](https://github.com/halo-dev/halo/issues/8429#issuecomment-4196228369)，故本插件不支持缩略图相关功能。
 
@@ -23,17 +23,19 @@
 
 ### API Token
 
-Lsky Pro v2 后台没有生成 Token 功能，必须通过请求 API 接口获得。具体接口定义在 Lsky Pro 后台可以看到。
+Lsky Pro 后台没有直接显示 Token 的功能，必须通过请求 API 接口获得。
 
-#### cURL 方式
-
-若计算机已安装 curl 则可以通过命令行获取：
+**开源版（v1 API）：**
 
 ```bash
 curl --location --request POST 'https://example.com/api/v1/tokens' \
 --form 'email="your-email"' \
 --form 'password="your-password"'
 ```
+
+**商业版（v2 API）：**
+
+商业版在后台「系统 - API Token」页面可以直接创建和管理 Token。
 
 #### 在线 HTTP 请求工具
 
@@ -55,7 +57,11 @@ curl --location --request POST 'https://example.com/api/v1/tokens' \
 当然也可以通过 API 获取，如果你有 curl 的话那么执行：
 
 ```bash
+# 开源版 v1 API
 curl https://yourdomain.com/api/v1/albums -H 'Authorization: Bearer {your-api-token}'
+
+# 商业版 v2 API
+curl https://yourdomain.com/api/v2/albums -H 'Authorization: Bearer {your-api-token}'
 ```
 
 ### 实例 ID

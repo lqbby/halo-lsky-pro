@@ -115,14 +115,16 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
 
     Mono<Void> delete(String key, LskyProProperties properties) {
         return Mono.defer(() ->
-                Mono.just(new LskyProClient(properties.getLskyUrl(), properties.getLskyToken()))
+                Mono.just(new LskyProClient(properties.getLskyUrl(), properties.getLskyToken(),
+                    properties.getApiVersion()))
             )
             .flatMap((lskyProClient -> lskyProClient.delete(key)));
     }
 
     Mono<UploadResponse> upload(UploadContext uploadContext, LskyProProperties props) {
         return Mono.defer(() ->
-                Mono.just(new LskyProClient(props.getLskyUrl(), props.getLskyToken()))
+                Mono.just(new LskyProClient(props.getLskyUrl(), props.getLskyToken(),
+                    props.getApiVersion()))
             )
             .flatMap((lskyProClient ->
                 lskyProClient.upload(uploadContext.file().content(),

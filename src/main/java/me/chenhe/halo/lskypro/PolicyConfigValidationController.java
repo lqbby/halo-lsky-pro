@@ -30,7 +30,8 @@ public class PolicyConfigValidationController {
     @PostMapping("/policies/validation")
     public Mono<Void> validatePolicyConfig(@RequestBody LskyProProperties props) {
         final var content = readImage();
-        final var client = new LskyProClient(props.getLskyUrl(), props.getLskyToken());
+        final var client = new LskyProClient(props.getLskyUrl(), props.getLskyToken(),
+            props.getApiVersion());
         return client.upload(content, FILE_NAME, null, props.getLskyStrategy(),
                 props.getLskyAlbumId())
             .doOnNext(r -> log.info("Validate LskyPro policy config: upload successful: {}", r))
