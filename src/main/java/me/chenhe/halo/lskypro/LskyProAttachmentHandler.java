@@ -126,13 +126,11 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
                 Mono.just(new LskyProClient(props.getLskyUrl(), props.getLskyToken(),
                     props.getApiVersion()))
             )
-            .flatMap((lskyProClient -> {
-                final var file = uploadContext.file();
-                final long contentLength = file.headers().getContentLength();
-                return lskyProClient.upload(file.content(), file.filename(), null,
-                    props.getLskyStrategy(), props.getLskyAlbumId(),
-                    contentLength >= 0 ? contentLength : 0L);
-            }));
+            .flatMap((lskyProClient ->
+                lskyProClient.upload(uploadContext.file().content(),
+                    uploadContext.file().filename(), null, props.getLskyStrategy(),
+                    props.getLskyAlbumId(), 0L)
+            ));
     }
 
     Optional<String> getImageLink(Attachment attachment) {
