@@ -1,7 +1,9 @@
 package me.chenhe.halo.lskypro.client;
 
+import jakarta.annotation.Nullable;
+
 /**
- * @param size in KB
+ * @param size in KB, may be null in v2 API if size info not available
  */
 public record UploadResponse(
     String key,
@@ -9,7 +11,7 @@ public record UploadResponse(
     String origin_name,
     String extension,
     String sha1,
-    float size,
+    @Nullable Float size,
     String mimetype,
     Links links
 ) {

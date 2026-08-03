@@ -196,7 +196,8 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         var spec = new Attachment.AttachmentSpec();
         // Due to the limitations of LskyPro, it is the original size rather than the actual size
         // after image processing.
-        spec.setSize((long) (uploadResponse.size() * 1024L));
+        spec.setSize(uploadResponse.size() != null
+            ? (long) (uploadResponse.size() * 1024L) : 0L);
         spec.setDisplayName(displayName);
         if (mediaType != null) {
             spec.setMediaType(mediaType.toString());
