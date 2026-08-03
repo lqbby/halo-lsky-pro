@@ -1,13 +1,7 @@
 package me.chenhe.halo.lskypro.client;
 
-import tools.jackson.core.JsonParser;
-import tools.jackson.core.JsonToken;
-import tools.jackson.databind.DeserializationContext;
-import tools.jackson.databind.JsonDeserializer;
-import tools.jackson.databind.annotation.JsonDeserialize;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
-import java.io.IOException;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
@@ -116,39 +110,23 @@ public class LskyProClient {
 
     /**
      * Verify that the Lsky Pro API response status is {@code true}.
+     * Supports v1 boolean {@code true} and v2 string {@code "success"}/{"true"}.
      */
     <T> Mono<T> checkResponse(LskyResponse<T> resp) {
-        if (resp.status()) {
+        if (resp.isSuccess()) {
             return Mono.justOrEmpty(resp.data);
         }
         return Mono.error(
-            new LskyProException(HttpStatus.OK, "status=false: " + resp.message));
+            new LskyProException(HttpStatus.OK, "status=" + resp.status + ": " + resp.message));
     }
 
-    public record LskyResponse<T>(
-        @JsonDeserialize(using = StatusDeserializer.class) boolean status,
-        String message,
-        T data
-    ) {
-    }
-
-    /**
-     * Deserializer that accepts both v1 boolean status and v2 string "success"/"true" status.
-     */
-    static class StatusDeserializer extends JsonDeserializer<Boolean> {
-        @Override
-        public Boolean deserialize(JsonParser p, DeserializationContext ctxt)
-            throws IOException {
-            JsonToken token = p.getCurrentToken();
-            if (token == JsonToken.VALUE_TRUE) {
-                return true;
+    public record LskyResponse<T>(Object status, String message, T data) {
+        public boolean isSuccess() {
+            if (status instanceof Boolean b) {
+                return b;
             }
-            if (token == JsonToken.VALUE_FALSE) {
-                return false;
-            }
-            if (token == JsonToken.VALUE_STRING) {
-                String v = p.getText();
-                return "success".equalsIgnoreCase(v) || "true".equalsIgnoreCase(v);
+            if (status instanceof String s) {
+                return "true".equalsIgnoreCase(s) || "success".equalsIgnoreCase(s);
             }
             return false;
         }
