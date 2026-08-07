@@ -86,19 +86,19 @@ public class LskyProClient {
             .contentType(MediaType.MULTIPART_FORM_DATA)
             .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
             .retrieve()
-            .bodyToMono(new ParameterizedTypeReference<LskyResponse<UploadResponse>>() {
+            .bodyToMono(new ParameterizedTypeReference<LskyResponse<Map<String, Object>>>() {
             })
             .flatMap(this::checkResponse)
             .flatMap((data) -> {
-                final var hasUrl = (data.links() != null && StringUtils.hasText(data.links().url()))
-                    || StringUtils.hasText(data.publicUrl());
+                final var resp = UploadResponse.fromMap(data, fileSize);
+                final var hasUrl = (resp.links() != null && StringUtils.hasText(resp.links().url()))
+                    || StringUtils.hasText(resp.publicUrl());
                 if (!hasUrl) {
                     return Mono.error(
                         new LskyProException(HttpStatus.OK, "links or url is empty"));
                 }
-                return Mono.just(data);
-            })
-            .map(resp -> resp.withFallbackSize(fileSize));
+                return Mono.just(resp);
+            });
     }
 
     public Mono<Void> delete(@NotNull String key) {
@@ -109,7 +109,7 @@ public class LskyProClient {
         return client.delete()
             .uri("/images/" + key)
             .retrieve()
-            .bodyToMono(new ParameterizedTypeReference<LskyResponse<Void>>() {
+            .bodyToMono(new ParameterizedTypeReference<LskyResponse<Map<String, Object>>>() {
             })
             .flatMap((this::checkResponse))
             .then(Mono.empty());
