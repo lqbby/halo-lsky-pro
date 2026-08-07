@@ -35,9 +35,9 @@ public record UploadResponse(
     /** Fallback file size in bytes, set by client before building attachment */
     @JsonIgnore long fallbackSize
 ) {
-    public UploadResponse withFallbackSize(long size) {
+    public UploadResponse withFallbackSize(long fallbackSizeBytes) {
         return new UploadResponse(key, name, origin_name, filename, extension, sha1,
-            size, mimetype, links, publicUrl, pathname, id, size);
+            size, mimetype, links, publicUrl, pathname, id, fallbackSizeBytes);
     }
 
     /** Returns size in KB, using fallback if v2 API didn't provide it */
