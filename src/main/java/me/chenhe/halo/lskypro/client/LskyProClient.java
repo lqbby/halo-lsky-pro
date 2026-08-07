@@ -17,9 +17,17 @@ import reactor.core.publisher.Mono;
 
 public class LskyProClient {
     protected WebClient client;
+    protected final boolean isV2Api;
 
     public LskyProClient(@NotNull String server, @Nullable String token) {
-        final String baseUrl = server + (server.endsWith("/") ? "" : "/") + "api/v1";
+        this(server, token, "v1");
+    }
+
+    public LskyProClient(@NotNull String server, @Nullable String token,
+        @NotNull String apiVersion) {
+        final String apiPath = "v2".equals(apiVersion) ? "api/v2" : "api/v1";
+        this.isV2Api = "v2".equals(apiVersion);
+        final String baseUrl = server + (server.endsWith("/") ? "" : "/") + apiPath;
 
         var builder = WebClient.builder()
             .baseUrl(baseUrl)
@@ -51,7 +59,8 @@ public class LskyProClient {
         @Nullable String filename,
         @Nullable MediaType contentType,
         @Nullable Integer strategyId,
-        @Nullable Integer albumId
+        @Nullable Integer albumId,
+        long fileSize
     ) {
 
         final var bodyBuilder = new MultipartBodyBuilder();
@@ -66,7 +75,7 @@ public class LskyProClient {
             filePartBuilder.contentType(t.orElse(MediaType.APPLICATION_OCTET_STREAM));
         }
         if (strategyId != null) {
-            bodyBuilder.part("strategy_id", strategyId);
+            bodyBuilder.part(isV2Api ? "storage_id" : "strategy_id", strategyId);
         }
         if (albumId != null) {
             bodyBuilder.part("album_id", albumId);
@@ -81,16 +90,22 @@ public class LskyProClient {
             })
             .flatMap(this::checkResponse)
             .flatMap((data) -> {
-                if (data == null || data.links() == null || !StringUtils.hasText(
-                    data.links().url())) {
+                final var hasUrl = (data.links() != null && StringUtils.hasText(data.links().url()))
+                    || StringUtils.hasText(data.publicUrl());
+                if (!hasUrl) {
                     return Mono.error(
                         new LskyProException(HttpStatus.OK, "links or url is empty"));
                 }
                 return Mono.just(data);
-            });
+            })
+            .map(resp -> resp.withFallbackSize(fileSize));
     }
 
     public Mono<Void> delete(@NotNull String key) {
+        if (isV2Api) {
+            // v2 API doesn't expose a delete endpoint; skip deletion gracefully
+            return Mono.empty();
+        }
         return client.delete()
             .uri("/images/" + key)
             .retrieve()
@@ -102,16 +117,26 @@ public class LskyProClient {
 
     /**
      * Verify that the Lsky Pro API response status is {@code true}.
+     * Supports v1 boolean {@code true} and v2 string {@code "success"}/{"true"}.
      */
     <T> Mono<T> checkResponse(LskyResponse<T> resp) {
-        if (resp.status()) {
+        if (resp.isSuccess()) {
             return Mono.justOrEmpty(resp.data);
         }
         return Mono.error(
-            new LskyProException(HttpStatus.OK, "status=false: " + resp.message));
+            new LskyProException(HttpStatus.OK, "status=" + resp.status + ": " + resp.message));
     }
 
-    public record LskyResponse<T>(boolean status, String message, T data) {
+    public record LskyResponse<T>(Object status, String message, T data) {
+        public boolean isSuccess() {
+            if (status instanceof Boolean b) {
+                return b;
+            }
+            if (status instanceof String s) {
+                return "true".equalsIgnoreCase(s) || "success".equalsIgnoreCase(s);
+            }
+            return false;
+        }
     }
 
 }

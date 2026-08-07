@@ -27,17 +27,24 @@ spec:
               placeholder: "https://img.example.com"
               validation: required|url
               validation-visibility: live
+            - $formkit: select
+              name: apiVersion
+              label: API 版本
+              help: "选择图床 API 版本。开源版选 v1，商业版选 v2。"
+              options:
+                - label: "v1（开源版）"
+                  value: "v1"
+                - label: "v2（商业版）"
+                  value: "v2"
             - $formkit: text
               name: lskyToken
               label: API Token
-              help: '格式类似 x|xxxxxxx。留空则以游客身份上传。'
+              help: 'v1 格式类似 x|xxxxxxx。v2 为商业版 Token。留空则以游客身份上传。'
               placeholder: "x|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-              validation: [ [ 'matches', '/^\d+\|\w+$/' ] ]
-              validation-visibility: live
             - $formkit: number
               name: lskyStrategy
-              label: Lsky Pro 储存策略
-              help: '可选。用于指定 Lsky Pro 储存策略 ID，对应 strategy_id 参数。只能输入整数，留空为默认。'
+              label: 储存策略 ID
+              help: '可选。v1 对应 strategy_id 参数，v2 对应 storage_id 参数。只能输入整数，留空为默认。'
               validation: 'min:0'
             - $formkit: number
               name: lskyAlbumId

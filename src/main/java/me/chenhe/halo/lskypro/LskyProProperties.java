@@ -27,6 +27,11 @@ public class LskyProProperties {
     private Integer lskyAlbumId;
 
     /**
+     * API version. "v1" for open-source edition, "v2" for commercial edition.
+     */
+    private String apiVersion = "v1";
+
+    /**
      * User-specified instance ID.
      */
     private @Nullable String instanceId;
@@ -34,7 +39,8 @@ public class LskyProProperties {
     @SuppressWarnings("unused")
     public void setLskyUrl(String lskyUrl) {
         final var fileSeparator = "/";
-        final var apiSuffix = "/api/v1";
+        final var apiV1Suffix = "/api/v1";
+        final var apiV2Suffix = "/api/v2";
         if (!StringUtils.hasText(lskyUrl)) {
             this.lskyUrl = null;
             return;
@@ -42,8 +48,10 @@ public class LskyProProperties {
         if (lskyUrl.endsWith(fileSeparator)) {
             lskyUrl = lskyUrl.substring(0, lskyUrl.length() - 1);
         }
-        if (lskyUrl.endsWith(apiSuffix)) {
-            lskyUrl = lskyUrl.substring(0, lskyUrl.length() - apiSuffix.length());
+        if (lskyUrl.endsWith(apiV2Suffix)) {
+            lskyUrl = lskyUrl.substring(0, lskyUrl.length() - apiV2Suffix.length());
+        } else if (lskyUrl.endsWith(apiV1Suffix)) {
+            lskyUrl = lskyUrl.substring(0, lskyUrl.length() - apiV1Suffix.length());
         }
         this.lskyUrl = lskyUrl;
     }
