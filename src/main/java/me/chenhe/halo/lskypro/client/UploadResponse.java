@@ -91,4 +91,21 @@ public record UploadResponse(
         }
         return fallbackSize;
     }
+
+    /**
+     * The identifier used to delete this image from Lsky Pro.
+     *
+     * <p>v1 deletes by {@code key} via {@code DELETE /api/v1/images/{key}}, while v2 deletes by
+     * numeric {@code id} via {@code DELETE /api/v2/user/photos} (JSON body {@code [id]}). This
+     * method returns the first usable value for the configured API version.
+     */
+    public @Nullable String getDeletionKey() {
+        if (key != null && !key.isBlank()) {
+            return key;
+        }
+        if (id != null) {
+            return String.valueOf(id);
+        }
+        return pathname;
+    }
 }

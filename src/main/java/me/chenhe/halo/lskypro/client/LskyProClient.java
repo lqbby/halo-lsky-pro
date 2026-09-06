@@ -2,9 +2,12 @@ package me.chenhe.halo.lskypro.client;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
@@ -16,6 +19,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 public class LskyProClient {
     protected WebClient client;
     protected final boolean isV2Api;
@@ -64,6 +68,12 @@ public class LskyProClient {
         long fileSize
     ) {
 
+        if (isV2Api && strategyId == null) {
+            return Mono.error(new LskyProException(HttpStatus.UNPROCESSABLE_ENTITY,
+                "Lsky Pro v2 商业版上传必须提供储存策略 ID (storage_id)。"
+                    + "请在存储策略中填写「储存策略 ID」。"));
+        }
+
         final var bodyBuilder = new MultipartBodyBuilder();
         final var filePartBuilder = bodyBuilder.asyncPart("file", content, DataBuffer.class);
         if (filename != null) {
@@ -104,8 +114,23 @@ public class LskyProClient {
 
     public Mono<Void> delete(@NotNull String key) {
         if (isV2Api) {
-            // v2 API doesn't expose a delete endpoint; skip deletion gracefully
-            return Mono.empty();
+            // v2 deletes by numeric image id via DELETE /user/photos (JSON body [id]).
+            Integer id;
+            try {
+                id = Integer.valueOf(key.trim());
+            } catch (NumberFormatException e) {
+                log.warn(
+                    "Skip deleting from LskyPro v2: '{}' is not a numeric image id (legacy "
+                        + "pathname?), cannot sync delete.", key);
+                return Mono.empty();
+            }
+            return client.method(HttpMethod.DELETE)
+                .uri("/user/photos")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(List.of(id))
+                .retrieve()
+                .toBodilessEntity()
+                .then();
         }
         return client.delete()
             .uri("/images/" + key)
@@ -113,7 +138,7 @@ public class LskyProClient {
             .bodyToMono(new ParameterizedTypeReference<LskyResponse<Map<String, Object>>>() {
             })
             .flatMap((this::checkResponse))
-            .then(Mono.empty());
+            .then();
     }
 
     /**

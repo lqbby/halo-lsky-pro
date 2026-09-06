@@ -35,7 +35,10 @@ public class PolicyConfigValidationController {
         return client.upload(content, FILE_NAME, null, props.getLskyStrategy(),
                 props.getLskyAlbumId(), 0L)
             .doOnNext(r -> log.info("Validate LskyPro policy config: upload successful: {}", r))
-            .flatMap((uploadResp) -> client.delete(uploadResp.key()))
+            .flatMap((uploadResp) -> {
+                final String deletionKey = uploadResp.getDeletionKey();
+                return deletionKey != null ? client.delete(deletionKey) : Mono.empty();
+            })
             .onErrorMap(LskyProAttachmentHandler::handleError)
             .then(Mono.empty());
     }

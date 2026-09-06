@@ -16,10 +16,13 @@
 - 支持商业版 Lsky Pro v2 API (`/api/v2/`)，在添加存储策略时选择 API 版本即可
 - v2 模式下自动使用 `storage_id` 参数名（替代 v1 的 `strategy_id`）
 - 兼容 v2 API 的多种状态返回格式（`true` / `"success"`）
+- 支持 v2 删除同步：v2 通过 `DELETE /api/v2/user/photos`（按图片 ID 数组）删除，v1 通过 `DELETE /api/v1/images/{key}` 删除
+- v2 上传响应不含文件大小，插件改为统计上传文件真实字节数回填，Halo 中附件大小能正确显示
 
 局限性：
 
-- 不支持 Lsky Pro v1 旧版；同时支持开源版（v1 API: `/api/v1/`）和商业版（v2 API: `/api/v2/`），在添加存储策略时选择对应的 API 版本即可。
+- 同时支持开源版（v1 API: `/api/v1/`）和商业版（v2 API: `/api/v2/`），在添加存储策略时选择对应的 API 版本即可。
+- v2 商业版上传**必须**填写「储存策略 ID」（`storage_id` 为必填参数）。
 - 由于 Lsky Pro 限制，若启用图床端格式转换（图片压缩）将导致 Halo 中显示的附件大小不正确。
 - 由于 Lsky Pro 本身的限制，只能生成一个预定义大小的缩略图，不满足 [Halo 的要求](https://github.com/halo-dev/halo/issues/8429#issuecomment-4196228369)，故本插件不支持缩略图相关功能。
 

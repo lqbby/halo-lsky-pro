@@ -44,7 +44,7 @@ spec:
             - $formkit: number
               name: lskyStrategy
               label: 储存策略 ID
-              help: '可选。v1 对应 strategy_id 参数，v2 对应 storage_id 参数。只能输入整数，留空为默认。'
+              help: 'v1 对应 strategy_id 参数（可留空）；v2 对应 storage_id 参数，商业版必填。只能输入整数。'
               validation: 'min:0'
             - $formkit: number
               name: lskyAlbumId
@@ -62,4 +62,4 @@ spec:
             - $el: 'p'
               attrs:
                 style: { padding-top: '10px' }
-              children: '提示：受限于 Lsky Pro，本插件仅支持图片类型的附件。'
+              children: '提示：受限于 Lsky Pro，本插件仅支持图片类型的附件。v2 商业版支持删除同步（按图片 ID），v1 删除按 key。'

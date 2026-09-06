@@ -14,6 +14,8 @@ import me.chenhe.halo.lskypro.client.LskyProClient;
 import me.chenhe.halo.lskypro.client.LskyProException;
 import me.chenhe.halo.lskypro.client.UploadResponse;
 import org.pf4j.Extension;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
@@ -23,6 +25,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.server.ServerErrorException;
 import org.springframework.web.server.ServerWebInputException;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import run.halo.app.core.attachment.ThumbnailSize;
@@ -124,12 +127,19 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
     Mono<UploadResponse> upload(UploadContext uploadContext, LskyProProperties props) {
         return Mono.defer(() -> {
                 final var file = uploadContext.file();
-                final long contentLength = file.headers().getContentLength();
+                final long headerLength = file.headers().getContentLength();
                 final var client = new LskyProClient(props.getLskyUrl(), props.getLskyToken(),
                     props.getApiVersion());
-                return client.upload(file.content(), file.filename(), null,
-                    props.getLskyStrategy(), props.getLskyAlbumId(),
-                    contentLength >= 0 ? contentLength : 0L);
+                // The v2 upload response does not carry a size, so join the content once to
+                // measure its real byte length and reuse the joined buffer as the upload body.
+                return DataBufferUtils.join(file.content())
+                    .flatMap((DataBuffer buffer) -> {
+                        final long realSize = buffer.readableByteCount();
+                        final long size = realSize > 0 ? realSize
+                            : (headerLength > 0 ? headerLength : 0L);
+                        return client.upload(Flux.just(buffer), file.filename(), null,
+                            props.getLskyStrategy(), props.getLskyAlbumId(), size);
+                    });
             });
     }
 
@@ -195,12 +205,9 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
                 ? uploadResponse.name()
                 : uploadResponse.filename());
 
-        // v1: key; v2: pathname or id as string
-        final String imageKey = StringUtils.hasText(uploadResponse.key())
-            ? uploadResponse.key()
-            : (StringUtils.hasText(uploadResponse.pathname())
-                ? uploadResponse.pathname()
-                : String.valueOf(uploadResponse.id()));
+        // v1 deletes by key; v2 deletes by numeric id (see UploadResponse#getDeletionKey).
+        final String imageKey = uploadResponse.getDeletionKey();
+        Assert.hasText(imageKey, "cannot determine the image deletion key from upload response");
 
         final var mediaType = getUploadedImageMediaType(uploadResponse);
 
