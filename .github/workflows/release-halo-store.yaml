@@ -1,9 +1,8 @@
 name: Release-Halo
 
 on:
-  release:
-    types:
-      - published
+  # 魔改版无需上架 Halo 官方应用商店，关闭 release published 自动触发，
+  # 仅保留手动 workflow_dispatch（需要时再手动跑）。
   workflow_dispatch:
     inputs:
       releaseName:
