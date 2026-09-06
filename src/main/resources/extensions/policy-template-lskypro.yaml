@@ -51,6 +51,21 @@ spec:
               label: Lsky Pro 相册 ID
               help: '可选。用于指定上传图片所属的相册 ID，留空则不指定。需要付费版兰空图床方能生效。'
               validation: 'min:0'
+            - $formkit: switch
+              name: autoAlbum
+              label: 按日期自动归档到相册
+              help: '仅 v2 商业版。勾选后，若未指定相册 ID，将按「yyyy-MM」（如 2026-09）自动创建或复用相册。'
+              value: false
+            - $formkit: switch
+              name: removeExif
+              label: 移除图片 EXIF 信息
+              help: '仅 v2 商业版。勾选后上传时剥离 EXIF（拍摄位置、设备型号等隐私信息）。'
+              value: false
+            - $formkit: switch
+              name: publicImage
+              label: 设为公开图片
+              help: '仅 v2 商业版。勾选后上传的图片在广场公开可见。'
+              value: false
             - $formkit: text
               name: instanceId
               label: 实例 ID
@@ -62,4 +77,8 @@ spec:
             - $el: 'p'
               attrs:
                 style: { padding-top: '10px' }
-              children: '提示：受限于 Lsky Pro，本插件仅支持图片类型的附件。v2 商业版支持删除同步（按图片 ID），v1 删除按 key。'
+              children: '提示：受限于 Lsky Pro，本插件仅支持图片类型的附件。v2 商业版支持删除同步（按图片 ID）、按日期自动归档、去 EXIF、公开图片，以及云处理缩略图（需在兰空后台开启「云处理 → 支持参数 w」）。v1 删除按 key。'
+            - $el: 'p'
+              attrs:
+                style: { padding-top: '10px' }
+              children: '如何查「储存策略 ID」：兰空后台「储存」页面，鼠标悬停/进入策略即可见其 ID；「相册 ID」可在兰空后台「相册」页或点击本页「验证图床设置」后查看 Halo 日志中输出的相册列表。'

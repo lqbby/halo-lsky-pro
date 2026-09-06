@@ -33,14 +33,27 @@ public class PolicyConfigValidationController {
         final var client = new LskyProClient(props.getLskyUrl(), props.getLskyToken(),
             props.getApiVersion());
         return client.upload(content, FILE_NAME, null, props.getLskyStrategy(),
-                props.getLskyAlbumId(), 0L)
+                props.getLskyAlbumId(), 0L, props.getRemoveExif(), props.getPublicImage())
             .doOnNext(r -> log.info("Validate LskyPro policy config: upload successful: {}", r))
             .flatMap((uploadResp) -> {
                 final String deletionKey = uploadResp.getDeletionKey();
                 return deletionKey != null ? client.delete(deletionKey) : Mono.empty();
             })
+            .then("v2".equals(props.getApiVersion()) ? logAlbums(client) : Mono.empty())
             .onErrorMap(LskyProAttachmentHandler::handleError)
             .then(Mono.empty());
+    }
+
+    /**
+     * Log the current user's albums so the operator can look up album ids. Kept as a log-only
+     * aid since the Halo formkit remote select cannot carry the per-policy token in its request.
+     */
+    private Mono<Void> logAlbums(LskyProClient client) {
+        return client.listAlbums(null, 1, 100)
+            .doOnNext(albums -> log.info("LskyPro v2 albums ({}): {}",
+                albums.size(),
+                albums.stream().map(a -> a.name() + "=" + a.id()).toList()))
+            .then();
     }
 
     private Flux<DataBuffer> readImage() {

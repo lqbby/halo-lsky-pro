@@ -2,6 +2,7 @@ package me.chenhe.halo.lskypro.client;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -65,7 +66,9 @@ public class LskyProClient {
         @Nullable MediaType contentType,
         @Nullable Integer strategyId,
         @Nullable Integer albumId,
-        long fileSize
+        long fileSize,
+        @Nullable Boolean removeExif,
+        @Nullable Boolean publicImage
     ) {
 
         if (isV2Api && strategyId == null) {
@@ -90,6 +93,12 @@ public class LskyProClient {
         }
         if (albumId != null) {
             bodyBuilder.part("album_id", albumId);
+        }
+        if (isV2Api && removeExif != null) {
+            bodyBuilder.part("is_remove_exif", removeExif);
+        }
+        if (isV2Api && publicImage != null) {
+            bodyBuilder.part("is_public", publicImage);
         }
 
         return client.post()
@@ -139,6 +148,88 @@ public class LskyProClient {
             })
             .flatMap((this::checkResponse))
             .then();
+    }
+
+    /**
+     * List the albums of the current user (v2 only).
+     */
+    public Mono<List<Album>> listAlbums(@Nullable String keyword, int page, int perPage) {
+        return client.get()
+            .uri(uriBuilder -> {
+                var builder = uriBuilder.path("/user/albums")
+                    .queryParam("page", page)
+                    .queryParam("per_page", perPage);
+                if (StringUtils.hasText(keyword)) {
+                    builder = builder.queryParam("q", keyword);
+                }
+                return builder.build();
+            })
+            .retrieve()
+            .bodyToMono(new ParameterizedTypeReference<LskyResponse<Map<String, Object>>>() {
+            })
+            .flatMap(this::checkResponse)
+            .map(this::parseAlbums);
+    }
+
+    /**
+     * Create an album and return its id (v2 only).
+     */
+    public Mono<Integer> createAlbum(@NotNull String name, @Nullable String intro) {
+        final Map<String, Object> body = new HashMap<>();
+        body.put("name", name);
+        if (StringUtils.hasText(intro)) {
+            body.put("intro", intro);
+        }
+        return client.post()
+            .uri("/user/albums")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(body)
+            .retrieve()
+            .bodyToMono(new ParameterizedTypeReference<LskyResponse<Map<String, Object>>>() {
+            })
+            .flatMap(this::checkResponse)
+            .map(data -> data.get("id") instanceof Number n ? n.intValue() : null);
+    }
+
+    /**
+     * Find an album by name, creating it when missing. Returns the album id.
+     */
+    public Mono<Integer> getOrCreateAlbum(@NotNull String name) {
+        return listAlbums(name, 1, 100)
+            .flatMap(albums -> {
+                for (var album : albums) {
+                    if (name.equals(album.name())) {
+                        return Mono.just(album.id());
+                    }
+                }
+                return createAlbum(name, null);
+            });
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Album> parseAlbums(Map<String, Object> data) {
+        // v2 album list response: { data: [...], links: {...}, meta: {...} }
+        final Object inner = data.get("data");
+        if (!(inner instanceof List<?> list)) {
+            return List.of();
+        }
+        return list.stream()
+            .filter(Map.class::isInstance)
+            .map(o -> Album.fromMap((Map<String, Object>) o))
+            .toList();
+    }
+
+    /**
+     * A minimal album view: id + name + intro.
+     */
+    public record Album(@Nullable Integer id, @Nullable String name, @Nullable String intro) {
+        static Album fromMap(Map<String, Object> map) {
+            Integer id = map.get("id") instanceof Number n ? n.intValue() : null;
+            Object name = map.get("name");
+            Object intro = map.get("intro");
+            return new Album(id, name == null ? null : name.toString(),
+                intro == null ? null : intro.toString());
+        }
     }
 
     /**

@@ -27,6 +27,22 @@ public class LskyProProperties {
     private Integer lskyAlbumId;
 
     /**
+     * v2 only: whether to strip EXIF metadata from the uploaded image.
+     */
+    private Boolean removeExif;
+
+    /**
+     * v2 only: whether the uploaded image is public.
+     */
+    private Boolean publicImage;
+
+    /**
+     * v2 only: when enabled and no explicit album id is set, auto-create (or reuse) a dated
+     * album (e.g. {@code 2026-09}) for the upload.
+     */
+    private Boolean autoAlbum;
+
+    /**
      * API version. "v1" for open-source edition, "v2" for commercial edition.
      */
     private String apiVersion = "v1";

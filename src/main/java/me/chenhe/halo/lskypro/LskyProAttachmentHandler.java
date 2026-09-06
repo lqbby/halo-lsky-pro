@@ -6,6 +6,9 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -113,7 +116,37 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
     @Override
     public Mono<Map<ThumbnailSize, URI>> getThumbnailLinks(Attachment attachment, Policy policy,
         ConfigMap configMap) {
-        return Mono.just(Map.of());
+        if (!shouldHandle(policy, null)) {
+            return Mono.just(Map.of());
+        }
+        // 云处理（多尺寸缩略图）是商业版 v2 的能力：通过 ?w={width} 参数按需生成。
+        // 开源版 v1 只有单个预定义缩略图，无法映射 Halo 的 S/M/L/XL 四档，保持空实现。
+        final var properties = getProperties(configMap);
+        if (!"v2".equals(properties.getApiVersion())) {
+            return Mono.just(Map.of());
+        }
+
+        final var originalUrl = Optional.ofNullable(attachment.getStatus())
+            .map(Attachment.AttachmentStatus::getPermalink)
+            .or(() -> getImageLink(attachment));
+        if (originalUrl.isEmpty() || !StringUtils.hasText(originalUrl.get())) {
+            return Mono.just(Map.of());
+        }
+
+        final Map<ThumbnailSize, URI> links = new EnumMap<>(ThumbnailSize.class);
+        for (var size : ThumbnailSize.values()) {
+            links.put(size, URI.create(appendQuery(originalUrl.get(), "w",
+                String.valueOf(size.getWidth()))));
+        }
+        return Mono.just(links);
+    }
+
+    /**
+     * Append a query parameter to a URL, tolerating an existing query string.
+     */
+    static String appendQuery(String url, String key, String value) {
+        final String separator = url.contains("?") ? "&" : "?";
+        return url + separator + key + "=" + value;
     }
 
     Mono<Void> delete(String key, LskyProProperties properties) {
@@ -130,6 +163,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
                 final long headerLength = file.headers().getContentLength();
                 final var client = new LskyProClient(props.getLskyUrl(), props.getLskyToken(),
                     props.getApiVersion());
+                final Mono<Optional<Integer>> albumId = resolveAlbumId(client, props);
                 // The v2 upload response does not carry a size, so join the content once to
                 // measure its real byte length and reuse the joined buffer as the upload body.
                 return DataBufferUtils.join(file.content())
@@ -137,10 +171,29 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
                         final long realSize = buffer.readableByteCount();
                         final long size = realSize > 0 ? realSize
                             : (headerLength > 0 ? headerLength : 0L);
-                        return client.upload(Flux.just(buffer), file.filename(), null,
-                            props.getLskyStrategy(), props.getLskyAlbumId(), size);
+                        return albumId.flatMap(albumIdOpt -> client.upload(Flux.just(buffer),
+                            file.filename(), null, props.getLskyStrategy(), albumIdOpt.orElse(null),
+                            size, props.getRemoveExif(), props.getPublicImage()));
                     });
             });
+    }
+
+    /**
+     * Resolve the album id for the upload: explicit album id wins; otherwise, if v2 auto-archive
+     * is enabled, reuse or create a dated album (e.g. {@code 2026-09}); otherwise empty.
+     */
+    private Mono<Optional<Integer>> resolveAlbumId(LskyProClient client, LskyProProperties props) {
+        if (props.getLskyAlbumId() != null) {
+            return Mono.just(Optional.of(props.getLskyAlbumId()));
+        }
+        if (!"v2".equals(props.getApiVersion()) || !Boolean.TRUE.equals(props.getAutoAlbum())) {
+            return Mono.just(Optional.empty());
+        }
+        final String albumName = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        return client.getOrCreateAlbum(albumName)
+            .map(Optional::of)
+            .doOnNext(id -> id.ifPresent(v -> log.info("Auto archive to album '{}' (id={})",
+                albumName, v)));
     }
 
     Optional<String> getImageLink(Attachment attachment) {
