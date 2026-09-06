@@ -95,10 +95,12 @@ public class LskyProClient {
             bodyBuilder.part("album_id", albumId);
         }
         if (isV2Api && removeExif != null) {
-            bodyBuilder.part("is_remove_exif", removeExif);
+            // Lsky v2 (Laravel) validates these as strict booleans which reject the
+            // "true"/"false" strings Spring produces for Boolean; use 1/0 instead.
+            bodyBuilder.part("is_remove_exif", removeExif ? 1 : 0);
         }
         if (isV2Api && publicImage != null) {
-            bodyBuilder.part("is_public", publicImage);
+            bodyBuilder.part("is_public", publicImage ? 1 : 0);
         }
 
         return client.post()
